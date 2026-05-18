@@ -342,7 +342,127 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # Gọi hàm expectimax từ agent đầu tiên (Pacman = 0)
+        # với độ sâu tìm kiếm đã cho
+        return self.expectimaxsearch(gameState, 0, self.depth)[1]
+
+    def expectimaxsearch(self, game_state, agent_index, depth):
+
+        # Điều kiện dừng:
+        # - Độ sâu = 0
+        # - Pacman thắng
+        # - Pacman thua
+        if depth == 0 or game_state.isWin() or game_state.isLose():
+
+            # Trả về điểm đánh giá của trạng thái hiện tại
+            # và action STOP
+            ret = self.evaluationFunction(game_state), Directions.STOP
+
+        # Nếu là lượt của Pacman
+        elif agent_index == 0:
+
+            # Dùng hàm maximizer để chọn nước đi tốt nhất
+            ret = self.maximizer(game_state, agent_index, depth)
+
+        # Nếu là lượt của Ghost
+        else:
+
+            # Tính giá trị kỳ vọng (Expectation)
+            ret = self.expectation(game_state, agent_index, depth)
+
+        return ret
+
+
+    def maximizer(self, game_state, agent_index, depth):
+
+        # Lấy tất cả hành động hợp lệ của Pacman
+        actions = game_state.getLegalActions(agent_index)
+
+        # Kiểm tra agent tiếp theo
+        if agent_index == game_state.getNumAgents() - 1:
+
+            # Nếu agent hiện tại là agent cuối cùng
+            # quay lại Pacman và giảm depth
+            next_agent, next_depth = 0, depth - 1
+
+        else:
+
+            # Chuyển sang agent tiếp theo
+            next_agent, next_depth = agent_index + 1, depth
+
+        # Khởi tạo điểm lớn nhất rất nhỏ
+        max_score, max_action = -1e9, Directions.STOP
+
+        # Duyệt qua từng action
+        for action in actions:
+
+            # Sinh trạng thái kế tiếp
+            successor_game_state = game_state.generateSuccessor(
+                agent_index,
+                action
+            )
+
+            # Gọi đệ quy để tính điểm
+            new_score = self.expectimaxsearch(
+                successor_game_state,
+                next_agent,
+                next_depth
+            )[0]
+
+            # Nếu tìm được điểm tốt hơn
+            if new_score > max_score:
+
+                # Cập nhật điểm và action tốt nhất
+                max_score, max_action = new_score, action
+
+        return max_score, max_action
+
+
+    def expectation(self, game_state, agent_index, depth):
+
+        # Lấy các hành động hợp lệ của Ghost
+        actions = game_state.getLegalActions(agent_index)
+
+        # Xác định agent kế tiếp
+        if agent_index == game_state.getNumAgents() - 1:
+
+            # Nếu là agent cuối cùng
+            # quay lại Pacman và giảm depth
+            next_agent, next_depth = 0, depth - 1
+
+        else:
+
+            # Sang agent tiếp theo
+            next_agent, next_depth = agent_index + 1, depth
+
+        # Tổng giá trị kỳ vọng
+        exp_score = 0
+
+        # Ghost không cần action tối ưu
+        exp_action = Directions.STOP
+
+        # Duyệt tất cả action
+        for action in actions:
+
+            # Sinh trạng thái kế tiếp
+            successor_game_state = game_state.generateSuccessor(
+                agent_index,
+                action
+            )
+
+            # Cộng điểm từ các trạng thái con
+            exp_score += self.expectimaxsearch(
+                successor_game_state,
+                next_agent,
+                next_depth
+            )[0]
+
+        # Vì ghost chọn random đều nhau
+        # nên lấy trung bình cộng
+        exp_score /= len(actions)
+
+        # exp_action không dùng tới
+        return exp_score, exp_action
 
 def betterEvaluationFunction(currentGameState: GameState):
     """
