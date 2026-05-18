@@ -469,10 +469,59 @@ def betterEvaluationFunction(currentGameState: GameState):
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
     evaluation function (question 5).
 
-    DESCRIPTION: <write something here so we know what you did>
+    DESCRIPTION: <write something here so we know what you did> 
+    It considers:
+    - Distance to the nearest food: encourages Pacman to move toward food.
+    - Distance to ghosts:
+        + Penalizes being close to active (non-scared) ghosts.
+        + Rewards approaching scared ghosts for potential points.
+    - Remaining food count: penalized to encourage faster clearing.
+    - Remaining capsules: slightly penalized to promote usage.
+    - Current game score: included as a base metric.
+
+    The function uses inverse distance (1 / (d + 1)) to create smooth
+    gradients and avoid division by zero. When ghosts are scared,
+    Pacman is encouraged to chase them instead of avoiding.
+
+    Overall, the heuristic balances survival and efficiency, helping
+    the agent perform well with shallow search depth (e.g., depth = 2).
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    pacman_pos = currentGameState.getPacmanPosition()
+    foods = currentGameState.getFood().asList()
+    ghost_states = currentGameState.getGhostStates()
+    capsules = currentGameState.getCapsules()
+    score = currentGameState.getScore()
+
+    if foods:
+        min_food_dist = min([manhattanDistance(food, pacman_pos) for food in foods])
+        score += 1.0 / min_food_dist 
+
+    score -= 4 * len(foods)
+    score -= 20 * len(capsules)
+
+    active_ghost_dists = []
+    scared_ghost_dists = []
+
+    for ghost in ghost_states:
+        dist = manhattanDistance(ghost.getPosition(), pacman_pos)
+        if ghost.scaredTimer > 0:
+            scared_ghost_dists.append(dist)
+        else:
+            active_ghost_dists.append(dist)
+
+    if active_ghost_dists:
+        min_active_dist = min(active_ghost_dists)
+        if min_active_dist <= 1:
+            return -999999 
+        else:
+            score -= 2.0 / min_active_dist 
+
+    if scared_ghost_dists:
+        min_scared_dist = min(scared_ghost_dists)
+        score += 3.0 / (min_scared_dist + 1) 
+
+    return score
 
 # Abbreviation
 better = betterEvaluationFunction
