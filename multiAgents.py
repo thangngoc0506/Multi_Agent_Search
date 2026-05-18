@@ -62,7 +62,7 @@ class ReflexAgent(Agent):
         The code below extracts some useful information from the state, like the
         remaining food (newFood) and Pacman position after moving (newPos).
         newScaredTimes holds the number of moves that each ghost will remain
-        scared because of Pacman having eaten a power pellet.
+        scared because of Pacman having eaten a power p ellet.
 
         Print out these variables to see what you're getting, then combine them
         to create a masterful evaluation function.
@@ -75,43 +75,21 @@ class ReflexAgent(Agent):
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
-        # Tính khoảng cách tới con ma gần nhất (chỉ xét ma không bị sợ)
-        minGhostDist = float('inf')
-        for ghostState in newGhostStates:
-            # Chỉ né những con ma có scaredTimer == 0
-            if ghostState.scaredTimer == 0:
-                dist = manhattanDistance(newPos, ghostState.getPosition())
-                minGhostDist = min(minGhostDist, dist)
+        foods = newFood.asList()
+        nearestGhostDis = 1e9
+        for ghost_state in newGhostStates:
+            ghost_x, ghost_y = ghost_state.getPosition()
+            ghost_x = int(ghost_x)
+            ghost_y = int(ghost_y)
+            if ghost_state.scaredTimer == 0:
+                nearestGhostDis = min(nearestGhostDis, manhattanDistance((ghost_x, ghost_y), newPos))
+        nearestFoodDis = 1e9
+        for food in foods:
+            nearestFoodDis = min(nearestFoodDis, manhattanDistance(food, newPos))
+        if not foods:
+            nearestFoodDis = 0
+        return successorGameState.getScore() - 7 / (nearestGhostDis + 1) - nearestFoodDis / 3
 
-        # Tính khoảng cách tới viên thức ăn gần nhất
-        foodList = newFood.asList()
-        minFoodDist = float('inf')
-        for foodPos in foodList:
-            dist = manhattanDistance(newPos, foodPos)
-            minFoodDist = min(minFoodDist, dist)
-        
-        # Nếu không còn thức ăn, khoảng cách coi như bằng 0
-        if not foodList:
-            minFoodDist = 0
-
-        # Công thức Evaluation nâng cấp:
-        # 1. Sử dụng nghịch đảo của minFoodDist (1.0 / dist) để khuyến khích tiến lại gần thức ăn
-        # 2. Trừng phạt nặng nếu minGhostDist quá nhỏ (ví dụ <= 1)
-        
-        score = successorGameState.getScore()
-        
-        # Thêm điểm thưởng dựa trên khoảng cách thức ăn (càng gần điểm càng cao)
-        if minFoodDist > 0:
-            score += 10.0 / minFoodDist
-            
-        # Trừ điểm nếu ma ở quá gần (né ma)
-        if minGhostDist <= 1:
-            score -= 500 # Phạt cực nặng nếu đứng cạnh ma
-        else:
-            score -= 2.0 / minGhostDist # Phạt nhẹ dựa trên khoảng cách ma
-            
-        return score
-        # return successorGameState.getScore()
 
 def scoreEvaluationFunction(currentGameState: GameState):
     """
@@ -172,70 +150,48 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        score, action = self.minimaxSearch(gameState, 0, self.depth)
+        action = self.minimaxSearch(gameState, agentIndex=0, depth=self.depth)[1]
         return action
-        util.raiseNotDefined()
-    def minimaxSearch(self, gameState, agentIndex, depth):
-        # Điều kiện dừng(Thắng, Thua, hoặc đã duyệt hết chiều sâu depth = 0)
-        if gameState.isWin() or gameState.isLose() or depth == 0:
-            return self.evaluationFunction(gameState), Directions.STOP
-        if agentIndex == 0:
-            return self.maximizer(gameState, agentIndex, depth)
-        else:
-            return self.minimizer(gameState, agentIndex, depth)
-        
-    def maximizer(self, gameState, agentIndex, depth):
-        actions = gameState.getLegalActions(agentIndex)
-        # Nếu không có hành động nào hợp lệ
-        if not actions:
-            return self.evaluationFunction(gameState), Directions.STOP
-        
-        # Pacman (luôn là Agent 0) đi xong luôn chuyển sang Ghost 1(nếu có)
-        # Giữ nguyên depth vì chưa xong 1 lượt (Ply)
-        if agentIndex == gameState.getNumAgents() - 1: # Trường hợp không có ma
-            nextAgent = 0
-            nextDepth = depth - 1
-        else:
-            nextAgent = 1
-            nextDepth = depth
-        
-        maxScore = float('-inf')
-        maxAction = Directions.STOP
-
-        for action in actions:
-            successor = gameState.generateSuccessor(agentIndex, action)
-            newScore = self.minimaxSearch(successor, nextAgent, nextDepth)[0]
-            if newScore > maxScore:
-                maxScore = newScore
-                maxAction = action
-
-        return maxScore, maxAction
     
+
+    def minimaxSearch(self, gameState, agentIndex, depth):
+        if depth == 0 or gameState.isLose() or gameState.isWin():
+            ret = self.evaluationFunction(gameState), Directions.STOP
+        elif agentIndex == 0:
+            ret = self.maximizer(gameState, agentIndex, depth)
+        else:
+            ret = self.minimizer(gameState, agentIndex, depth)
+        return ret
+
     def minimizer(self, gameState, agentIndex, depth):
         actions = gameState.getLegalActions(agentIndex)
-        # Nếu không có hành động nào hợp lệ
-        if not actions:
-            return self.evaluationFunction(gameState), Directions.STOP
-        
-        # xác định Agent tiếp theo, nếu là agent là ma cuối thì trả về pacman(agentIndex == 0)
         if agentIndex == gameState.getNumAgents() - 1:
-            nextAgent = 0
-            nextDepth = depth - 1
+            next_agent, next_depth = 0, depth - 1
         else:
-            nextAgent = agentIndex + 1
-            nextDepth = depth
-        
-        minScore = float('inf')
-        minAction = Directions.STOP
-
+            next_agent, next_depth = agentIndex + 1, depth
+        min_score = 1e9
+        min_action = Directions.STOP
         for action in actions:
-            successor = gameState.generateSuccessor(agentIndex, action)
-            newScore = self.minimaxSearch(successor, nextAgent, nextDepth)[0]
-            if newScore < minScore:
-                minScore = newScore
-                minAction = action
+            successor_game_state = gameState.generateSuccessor(agentIndex, action)
+            new_score = self.minimaxSearch(successor_game_state, next_agent, next_depth)[0]
+            if new_score < min_score:
+                min_score, min_action = new_score, action
+        return min_score, min_action
 
-        return minScore, minAction
+    def maximizer(self, gameState, agentIndex, depth):
+        actions = gameState.getLegalActions(agentIndex)
+        if agentIndex == gameState.getNumAgents() - 1:
+            next_agent, next_depth = 0, depth - 1
+        else:
+            next_agent, next_depth = agentIndex + 1, depth
+        max_score = -1e9
+        max_action = Directions.STOP
+        for action in actions:
+            successor_game_state = gameState.generateSuccessor(agentIndex, action)
+            new_score = self.minimaxSearch(successor_game_state, next_agent, next_depth)[0]
+            if new_score > max_score:
+                max_score, max_action = new_score, action
+        return max_score, max_action
 
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
