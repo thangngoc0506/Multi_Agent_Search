@@ -346,30 +346,8 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
 
 def betterEvaluationFunction(currentGameState: GameState):
     """
-    An evaluation function designed for aggressive food collection while
-    maintaining safe distance from active ghosts and opportunistically
-    hunting scared ghosts.
-
-    Strategy overview:
-      1. FOOD PROXIMITY   — Adds 1 / min_food_dist to pull Pacman toward
-                            the nearest food pellet at all times.
-      2. FOOD COUNT       — Penalizes (-4 per pellet) remaining food to
-                            reward faster board clearing.
-      3. CAPSULE COUNT    — Penalizes (-20 per capsule) uneaten power
-                            pellets to encourage their use.
-      4. ACTIVE GHOSTS    — Returns -inf if a ghost is adjacent (dist <= 1).
-                            Otherwise subtracts 2 / dist so danger pressure
-                            scales smoothly with proximity.
-      5. SCARED GHOSTS    — Adds 3 / (dist + 1) to actively chase ghosts
-                            that are vulnerable, flipping avoidance to pursuit.
-
-    All distance terms use inverse-distance (1 / (d + 1)) to create smooth
-    gradients that guide the agent without hard cliffs, and to avoid
-    division-by-zero. The base game score anchors the estimate so that
-    actually eating food/ghosts is always preferred over mere positioning.
-
-    Works well at shallow search depths (e.g., depth = 2) because the
-    heuristic captures both immediate danger and medium-range incentives.
+    Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
+    evaluation function (question 5).
     """
 
     pacman_pos = currentGameState.getPacmanPosition()
