@@ -346,40 +346,54 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
 
 def betterEvaluationFunction(currentGameState: GameState):
     """
-    Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
-    evaluation function (question 5).
+    An evaluation function designed for aggressive food collection while
+    maintaining safe distance from active ghosts and opportunistically
+    hunting scared ghosts.
 
-    DESCRIPTION: <write something here so we know what you did> 
-    It considers:
-    - Distance to the nearest food: encourages Pacman to move toward food.
-    - Distance to ghosts:
-        + Penalizes being close to active (non-scared) ghosts.
-        + Rewards approaching scared ghosts for potential points.
-    - Remaining food count: penalized to encourage faster clearing.
-    - Remaining capsules: slightly penalized to promote usage.
-    - Current game score: included as a base metric.
+    Strategy overview:
+      1. FOOD PROXIMITY   — Adds 1 / min_food_dist to pull Pacman toward
+                            the nearest food pellet at all times.
+      2. FOOD COUNT       — Penalizes (-4 per pellet) remaining food to
+                            reward faster board clearing.
+      3. CAPSULE COUNT    — Penalizes (-20 per capsule) uneaten power
+                            pellets to encourage their use.
+      4. ACTIVE GHOSTS    — Returns -inf if a ghost is adjacent (dist <= 1).
+                            Otherwise subtracts 2 / dist so danger pressure
+                            scales smoothly with proximity.
+      5. SCARED GHOSTS    — Adds 3 / (dist + 1) to actively chase ghosts
+                            that are vulnerable, flipping avoidance to pursuit.
 
-    The function uses inverse distance (1 / (d + 1)) to create smooth
-    gradients and avoid division by zero. When ghosts are scared,
-    Pacman is encouraged to chase them instead of avoiding.
+    All distance terms use inverse-distance (1 / (d + 1)) to create smooth
+    gradients that guide the agent without hard cliffs, and to avoid
+    division-by-zero. The base game score anchors the estimate so that
+    actually eating food/ghosts is always preferred over mere positioning.
 
-    Overall, the heuristic balances survival and efficiency, helping
-    the agent perform well with shallow search depth (e.g., depth = 2).
+    Works well at shallow search depths (e.g., depth = 2) because the
+    heuristic captures both immediate danger and medium-range incentives.
     """
-    "*** YOUR CODE HERE ***"
+
     pacman_pos = currentGameState.getPacmanPosition()
     foods = currentGameState.getFood().asList()
     ghost_states = currentGameState.getGhostStates()
     capsules = currentGameState.getCapsules()
+
+    # Start from the real game score so eating is always rewarded
     score = currentGameState.getScore()
 
+    # Food proximity
+    # Reward being close to the nearest food; closer = higher bonus
     if foods:
-        min_food_dist = min([manhattanDistance(food, pacman_pos) for food in foods])
-        score += 1.0 / min_food_dist 
+        min_food_dist = min(manhattanDistance(food, pacman_pos) for food in foods)
+        score += 1.0 / min_food_dist  # No +1 needed; foods are never at distance 0
 
+    # Penalize number of remaining food pellets to incentivize fast clearing
     score -= 4 * len(foods)
+
+    # Penalize uneaten capsules to encourage Pacman to use power pellets
     score -= 20 * len(capsules)
 
+    # Ghost classification
+    # Separate ghosts into dangerous (active) and huntable (scared)
     active_ghost_dists = []
     scared_ghost_dists = []
 
@@ -390,16 +404,21 @@ def betterEvaluationFunction(currentGameState: GameState):
         else:
             active_ghost_dists.append(dist)
 
+    # Active ghost penalty
     if active_ghost_dists:
         min_active_dist = min(active_ghost_dists)
         if min_active_dist <= 1:
-            return -999999 
+            # Immediate death risk — treat this state as catastrophic
+            return -999999
         else:
-            score -= 2.0 / min_active_dist 
+            # Smooth penalty: grows as Pacman gets closer to a dangerous ghost
+            score -= 2.0 / min_active_dist
 
+    # Scared ghost reward
+    # When ghosts are scared, flip strategy: chase instead of flee
     if scared_ghost_dists:
         min_scared_dist = min(scared_ghost_dists)
-        score += 3.0 / (min_scared_dist + 1) 
+        score += 3.0 / (min_scared_dist + 1)  # +1 guards against dist == 0
 
     return score
 
