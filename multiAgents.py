@@ -158,12 +158,12 @@ class MinimaxAgent(MultiAgentSearchAgent):
         if depth == 0 or gameState.isLose() or gameState.isWin():
             ret = self.evaluationFunction(gameState), Directions.STOP
         elif agentIndex == 0:
-            ret = self.maximizer(gameState, agentIndex, depth)
+            ret = self.max_value(gameState, agentIndex, depth)
         else:
-            ret = self.minimizer(gameState, agentIndex, depth)
+            ret = self.min_value(gameState, agentIndex, depth)
         return ret
 
-    def minimizer(self, gameState, agentIndex, depth):
+    def min_value(self, gameState, agentIndex, depth):
         actions = gameState.getLegalActions(agentIndex)
         if agentIndex == gameState.getNumAgents() - 1:
             next_agent, next_depth = 0, depth - 1
@@ -178,7 +178,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
                 min_score, min_action = new_score, action
         return min_score, min_action
 
-    def maximizer(self, gameState, agentIndex, depth):
+    def max_value(self, gameState, agentIndex, depth):
         actions = gameState.getLegalActions(agentIndex)
         if agentIndex == gameState.getNumAgents() - 1:
             next_agent, next_depth = 0, depth - 1
@@ -216,11 +216,11 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             return self.evaluationFunction(gameState), Directions.STOP
             
         if agentIndex == 0:
-            return self.maximizer(gameState, agentIndex, depth, alpha, beta)
+            return self.max_value(gameState, agentIndex, depth, alpha, beta)
         else:
-            return self.minimizer(gameState, agentIndex, depth, alpha, beta)
+            return self.min_value(gameState, agentIndex, depth, alpha, beta)
             
-    def maximizer(self, gameState, agentIndex, depth, alpha, beta):
+    def max_value(self, gameState, agentIndex, depth, alpha, beta):
         actions = gameState.getLegalActions(agentIndex)
         if not actions:
             return self.evaluationFunction(gameState), Directions.STOP
@@ -253,7 +253,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
 
         return v, bestAction
         
-    def minimizer(self, gameState, agentIndex, depth, alpha, beta):
+    def min_value(self, gameState, agentIndex, depth, alpha, beta):
         actions = gameState.getLegalActions(agentIndex)
         if not actions:
             return self.evaluationFunction(gameState), Directions.STOP
@@ -318,7 +318,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         elif agent_index == 0:
 
             # Dùng hàm maximizer để chọn nước đi tốt nhất
-            ret = self.maximizer(game_state, agent_index, depth)
+            ret = self.max_value(game_state, agent_index, depth)
 
         # Nếu là lượt của Ghost
         else:
@@ -329,7 +329,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         return ret
 
 
-    def maximizer(self, game_state, agent_index, depth):
+    def max_value(self, game_state, agent_index, depth):
 
         # Lấy tất cả hành động hợp lệ của Pacman
         actions = game_state.getLegalActions(agent_index)
