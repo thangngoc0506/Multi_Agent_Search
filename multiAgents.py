@@ -474,6 +474,10 @@ def betterEvaluationFunction(currentGameState: GameState):
         min_scared_dist = min(scared_ghost_dists)
         score += 3.0 / (min_scared_dist + 1)  # +1 guards against dist == 0
 
+    # Penalize STOP action to prevent Pacman from standing still
+    if currentGameState.getPacmanState().getDirection() == Directions.STOP:
+        score -= 100.0
+        
     return score
 
 # Abbreviation
